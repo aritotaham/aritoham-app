@@ -21,7 +21,8 @@ export function getClient(): PublicClient {
 
 
 
-import { createWalletClient, custom, type Address } from "viem";
+
+import { createWalletClient, custom } from "viem";
 
 export function getWalletClient() {
   if (typeof window === "undefined" || !window.ethereum) {
