@@ -4,11 +4,15 @@ import { DEMO_ADDRESS as DEMO_ADDR } from "@/lib/brand";
 import { config as apiConfig } from "@/lib/contract";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
-export type WalletId = "metamask" | "okx" | "rabby";
+export type WalletId = "metamask" | "okx" | "rabby" | "trust" | "safepal" | "tokenpocket" | "coinbase";
 
 export const WALLETS: { id: WalletId; name: string; install: string; rdns: string[] }[] = [
   { id: "metamask", name: "MetaMask", install: "https://metamask.io/download/", rdns: ["io.metamask", "io.metamask.flask"] },
+  { id: "trust", name: "Trust Wallet", install: "https://trustwallet.com/download", rdns: ["com.trustwallet.app"] },
   { id: "okx", name: "OKX Wallet", install: "https://www.okx.com/web3", rdns: ["com.okex.wallet"] },
+  { id: "coinbase", name: "Coinbase Wallet", install: "https://www.coinbase.com/wallet/downloads", rdns: ["com.coinbase.wallet"] },
+  { id: "tokenpocket", name: "TokenPocket", install: "https://www.tokenpocket.pro/en/download/app", rdns: ["pro.tokenpocket"] },
+  { id: "safepal", name: "SafePal Wallet", install: "https://www.safepal.com/download", rdns: ["com.safepal.wallet", "com.safepal"] },
   { id: "rabby", name: "Rabby Wallet", install: "https://rabby.io/", rdns: ["io.rabby"] },
 ];
 
@@ -20,6 +24,12 @@ type Eip1193 = {
   isRabby?: boolean;
   isOkxWallet?: boolean;
   isOKExWallet?: boolean;
+  isTrust?: boolean;
+  isTrustWallet?: boolean;
+  isSafePal?: boolean;
+  isTokenPocket?: boolean;
+  isCoinbaseWallet?: boolean;
+  isCoinbaseBrowser?: boolean;
   providers?: Eip1193[];
 };
 
@@ -91,20 +101,68 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("eip6963:announceProvider", onAnnounce);
   }, []);
 
-  const getProvider = useCallback(
-    (id: WalletId): Eip1193 | null => {
-      if (typeof window === "undefined") return null;
-      const meta = WALLETS.find((w) => w.id === id)!;
-      for (const r of meta.rdns) if (announced[r]) return announced[r];
-      const w = window as any;
-      const eth: Eip1193 | undefined = w.ethereum;
-      const list: Eip1193[] = eth?.providers?.length ? eth.providers : eth ? [eth] : [];
-      if (id === "okx") return w.okxwallet || list.find((p) => p.isOkxWallet || p.isOKExWallet) || null;
-      if (id === "rabby") return w.rabby || list.find((p) => p.isRabby) || null;
-      return list.find((p) => p.isMetaMask && !p.isRabby && !p.isOkxWallet && !p.isOKExWallet) || null;
-    },
-    [announced]
-  );
+const getProvider = useCallback(
+  (id: WalletId): Eip1193 | null => {
+    if (typeof window === "undefined") return null;
+    const meta = WALLETS.find((w) => w.id === id)!;
+    for (const r of meta.rdns) if (announced[r]) return announced[r];
+
+    const w = window as any;
+    const eth: Eip1193 | undefined = w.ethereum;
+    const list: Eip1193[] = eth?.providers?.length
+      ? eth.providers
+      : eth
+      ? [eth]
+      : [];
+
+    switch (id) {
+      case "okx":
+        return (
+          w.okxwallet ||
+          list.find((p) => p.isOkxWallet || p.isOKExWallet) ||
+          null
+        );
+      case "rabby":
+        return w.rabby || list.find((p) => p.isRabby) || null;
+      case "trust":
+        return (
+          w.trustwallet ||
+          list.find((p) => p.isTrust || p.isTrustWallet) ||
+          null
+        );
+      case "safepal":
+        return w.safepalProvider || list.find((p) => p.isSafePal) || null;
+      case "tokenpocket":
+        return (
+          w.tokenpocket?.ethereum || list.find((p) => p.isTokenPocket) || null
+        );
+      case "coinbase":
+        return (
+          w.coinbaseWalletExtension ||
+          list.find((p) => p.isCoinbaseWallet || p.isCoinbaseBrowser) ||
+          null
+        );
+      default:
+        // MetaMask: many wallets spoof isMetaMask, so exclude all the others
+        return (
+          list.find(
+            (p) =>
+              p.isMetaMask &&
+              !p.isRabby &&
+              !p.isOkxWallet &&
+              !p.isOKExWallet &&
+              !p.isTrust &&
+              !p.isTrustWallet &&
+              !p.isSafePal &&
+              !p.isTokenPocket &&
+              !p.isCoinbaseWallet &&
+              !p.isCoinbaseBrowser
+          ) || null
+        );
+    }
+  },
+  [announced]
+);
 
   const isInstalled = useCallback((id: WalletId) => DEMO || !!getProvider(id), [getProvider]);
 

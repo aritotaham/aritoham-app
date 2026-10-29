@@ -274,6 +274,7 @@ export function RankRewardsView() {
   const { address } = useWallet();
   const { data: dash } = useDashboard(address);
   const { roadmap, incentive, reward } = useRank(address);
+  console.log(roadmap)
   const next = roadmap.find((k) => k.isNext) ?? roadmap[roadmap.length - 1] ?? { rank: 0, name: "—", selfMinted: 0, directs: 0, matching: 0, incentivePct: 0, incomeAmount: 0, achieved: false, isNext: false };
   const fmt0 = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
   const pctOf = (a: number, b: number) => (b > 0 ? Math.min(100, Math.floor((a / b) * 100)) : 100);

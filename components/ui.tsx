@@ -329,15 +329,33 @@ export function Donut({ pct, size = 112 }: { pct: number; size?: number }) {
 }
 
 /** Price area chart drawn on the light-gold chart card. */
+/** Price area chart drawn on the light-gold chart card. */
 export function PriceChart({ data, labels }: { data: number[]; labels: string[] }) {
   const W = 640, H = 210, L = 56, R = 10, T = 12, B = 30;
-  const min = Math.min(...data), max = Math.max(...data);
-  const lo = Math.floor(min * 100000) / 100000; let hi = Math.ceil(max * 100000) / 100000; if (hi <= lo) hi = lo + 0.00001;
-  const x = (i: number) => L + (i / (data.length - 1)) * (W - L - R);
+
+  // Keep only finite numbers so one bad value can't poison min/max
+  const clean = (data ?? []).filter((v) => Number.isFinite(v));
+
+  if (clean.length < 2) {
+    return (
+      <div style={{ padding: "40px 0", textAlign: "center", fontSize: 12.5, fontWeight: 700, color: "#7a6320" }}>
+        Price data is loading…
+      </div>
+    );
+  }
+
+  const min = Math.min(...clean), max = Math.max(...clean);
+  const lo = Math.floor(min * 100000) / 100000;
+  let hi = Math.ceil(max * 100000) / 100000;
+  if (hi <= lo) hi = lo + 0.00001;
+
+  const x = (i: number) => L + (i / (clean.length - 1)) * (W - L - R);
   const y = (v: number) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
-  const line = data.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
-  const area = `${line} L${x(data.length - 1)},${H - B} L${x(0)},${H - B} Z`;
+  const line = clean.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const area = `${line} L${x(clean.length - 1)},${H - B} L${x(0)},${H - B} Z`;
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => lo + t * (hi - lo));
+  const lbls = labels ?? [];
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }} role="img" aria-label="24 hour price chart">
       <defs>
@@ -351,10 +369,10 @@ export function PriceChart({ data, labels }: { data: number[]; labels: string[] 
       ))}
       <path d={area} fill="url(#pc-fill)" />
       <path d={line} fill="none" stroke="#7a5a0e" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" />
-      {labels.map((lb, i) => (
-        <text key={i} x={L + (i / (labels.length - 1)) * (W - L - R)} y={H - 8} textAnchor="middle" fontSize="9.5" fill="#7a6320" fontWeight="700">{lb}</text>
+      {lbls.length > 1 && lbls.map((lb, i) => (
+        <text key={i} x={L + (i / (lbls.length - 1)) * (W - L - R)} y={H - 8} textAnchor="middle" fontSize="9.5" fill="#7a6320" fontWeight="700">{lb}</text>
       ))}
-      <circle cx={x(data.length - 1)} cy={y(data[data.length - 1])} r="4" fill="#d4af37" stroke="#fff8e4" strokeWidth="2" />
+      <circle cx={x(clean.length - 1)} cy={y(clean[clean.length - 1])} r="4" fill="#d4af37" stroke="#fff8e4" strokeWidth="2" />
     </svg>
   );
 }

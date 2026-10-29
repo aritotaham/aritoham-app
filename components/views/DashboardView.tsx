@@ -115,6 +115,11 @@ export default function DashboardView() {
   const { data: ca } = useContracts();
   const capEarned = cap.caEarned, capTotal = cap.totalCap, capLeft = cap.remaining, capPct = cap.usedPct;
 
+
+  const chartSeries = (mk.series ?? []).map((v: unknown) => Number(v)).filter((v: number) => Number.isFinite(v));
+  const chartLabels = (mk.labels ?? []).slice(0, chartSeries.length);
+  const chartReady = chartSeries.length >= 2;
+
   return (
     <>
       <PageTitle
@@ -145,6 +150,7 @@ export default function DashboardView() {
                       {BRAND.name} Protocol Wallet
                     </div>
                     <h2
+                      className="dashboard_protocol_overview_heading"
                       style={{
                         fontFamily: "var(--display)",
                         fontSize: 27,
@@ -579,7 +585,16 @@ export default function DashboardView() {
                     Live
                   </span>
                 </div>
-                <PriceChart data={mk.series} labels={mk.labels} />
+                {/* <PriceChart data={mk.series} labels={mk.labels} /> */}
+
+                {chartReady ? (
+                    <PriceChart data={chartSeries} labels={chartLabels} />
+                  ) : (
+                    <div style={{ padding: "40px 0", textAlign: "center", fontSize: 12.5, fontWeight: 700, color: "#7a6320" }}>
+                      Price data is loading…
+                    </div>
+                )}
+
               </div>
             </section>
           </div>
